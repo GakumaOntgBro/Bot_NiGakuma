@@ -1,0 +1,512 @@
+<!-- START OF FILE templates/dashboard.html -->
+{% extends "layout.html" %}
+
+{% block title %}Dashboard - Gakuma Panel{% endblock %}
+
+{% block content %}
+<h1 class="main-title">Dashboard</h1>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<!-- System & Storage Stats Section -->
+<div class="row">
+    <div class="col-xl-8 col-md-12 mb-4">
+        <div class="card h-100">
+             <div class="card-header">Bot & Database Stats</div>
+             <div class="card-body">
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="stat-card-title">Total Keys</div><div class="stat-card-value">{{ "{:,}".format(bot_stats.total_keys) }}</div></div>
+                    <div class="stat-card"><div class="stat-card-title">Used Keys</div><div class="stat-card-value">{{ "{:,}".format(bot_stats.used_keys) }}</div></div>
+                    <div class="stat-card"><div class="stat-card-title">Premium Users</div><div class="stat-card-value">{{ "{:,}".format(bot_stats.total_users) }}</div></div>
+                    <div class="stat-card"><div class="stat-card-title">Generated Today</div><div class="stat-card-value">{{ "{:,}".format(bot_stats.generated_today) }}</div></div>
+                    <div class="stat-card"><div class="stat-card-title">Generated All Time</div><div class="stat-card-value">{{ "{:,}".format(bot_stats.generated_all_time) }}</div></div>
+                    <div class="stat-card"><div class="stat-card-title">Database Files</div><div class="stat-card-value">{{ "{:,}".format(bot_stats.db_files) }}</div></div>
+                </div>
+             </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-12 mb-4">
+        <div class="card h-100">
+            <div class="card-header">Storage Overview</div>
+            <div class="card-body d-flex justify-content-center align-items-center">
+                <div class="storage-circle" style="--p:{{ db_size_percentage }};">
+                    <div class="storage-circle-info">
+                        <div class="storage-gb">{{ db_size_gb }} GB</div>
+                        <div class="storage-limit">/ {{ db_size_limit_gb }} GB Used</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- NEW: Traffic Chart -->
+<div class="section-title">Live Traffic Overview (Last 24h)</div>
+<div class="card mb-4">
+    <div class="card-body">
+        <canvas id="trafficChart" height="100"></canvas>
+    </div>
+</div>
+
+<!-- System Vitals -->
+<div class="section-title">System Vitals</div>
+<div class="row" id="system-stats-container">
+    <div class="col-xl-6 col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="text-secondary mb-0">MEMORY USAGE</h6>
+                    <i class="fas fa-memory fa-2x text-info"></i>
+                </div>
+                <div class="mt-3">
+                    <h2 class="display-6 fw-bold mb-0" id="stat-mem-percent">{{ initial_system_stats.get('memory_percent', 'N/A') }}</h2>
+                     <p class="text-secondary mb-1" id="stat-mem-text">{{ initial_system_stats.get('memory', 'N/A') }}</p>
+                    <div class="progress mt-2" style="height: 5px;">
+                        <div id="stat-mem-progress" class="progress-bar bg-info" role="progressbar" style="width: {{ initial_system_stats.get('memory_percent_raw', 0) }}%;" aria-valuenow="{{ initial_system_stats.get('memory_percent_raw', 0) }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6 col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="text-secondary mb-0">DISK USAGE</h6>
+                    <i class="fas fa-hdd fa-2x text-warning"></i>
+                </div>
+                <div class="mt-3">
+                    <h2 class="display-6 fw-bold mb-0" id="stat-disk-percent">{{ initial_system_stats.get('disk_percent', 'N/A') }}</h2>
+                    <p class="text-secondary mb-1" id="stat-disk-text">{{ initial_system_stats.get('disk', 'N/A') }}</p>
+                    <div class="progress mt-2" style="height: 5px;">
+                        <div id="stat-disk-progress" class="progress-bar bg-warning" role="progressbar" style="width: {{ initial_system_stats.get('disk_percent_raw', 0) }}%;" aria-valuenow="{{ initial_system_stats.get('disk_percent_raw', 0) }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Widgets -->
+<div class="row">
+    <div class="col-lg-5 mb-4">
+        <div class="card">
+            <div class="card-header">Database Stock</div>
+            <div class="card-body" style="max-height: 400px; overflow-y: auto; padding: 0.5rem 1rem;">
+                {% for folder_display_name, items in database_stock_by_folder.items() %}
+                    {% if items %}
+                    <h6 class="p-2 mt-2 text-secondary">{{ folder_display_name }}</h6>
+                    <table class="table table-hover table-sm">
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td><i class="fas fa-file-alt fa-fw text-secondary me-2"></i>{{ item.filename }}</td>
+                                <td class="text-end font-monospace">{{ "{:,}".format(item.count) if item.count is number else item.count }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% endif %}
+                {% else %}
+                    <p class="text-secondary text-center p-3">No database files found.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7 mb-4">
+        <div class="card">
+            <div class="card-header">Real-time Notifications</div>
+            <div class="card-body">
+                 <pre id="notification-log" class="notification-log-box">Listening for events...</pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Tools Row -->
+<div class="section-title">Admin Tools</div>
+<div class="row">
+    <div class="col-lg-7 mb-4">
+        <div class="card h-100">
+            <div class="card-header">👑 Admin Generation Tool</div>
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+                <p class="mb-4 text-secondary">Generate accounts from any database without depleting the stock. Results will be downloaded as a .txt file.</p>
+                <button type="button" class="btn btn-lg btn-primary-custom" data-bs-toggle="modal" data-bs-target="#adminGenerateModal" style="align-self: center;">
+                    <i class="fas fa-bolt me-2"></i>Launch Admin Generator
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5 mb-4">
+        <div class="card h-100">
+            <div class="card-header">👑 Admin Stock</div>
+            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                {% if admin_stock %}
+                <table class="table table-hover table-sm">
+                    <tbody>
+                        {% for item in admin_stock %}
+                        <tr>
+                            <td><i class="fas fa-file-invoice-dollar fa-fw text-success me-2"></i>{{ item.filename }}</td>
+                            <td class="text-end font-monospace">{{ "{:,}".format(item.count) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-secondary text-center p-3">No files found in 'admin_database'.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- BOT CONTROL CENTER -->
+<div class="section-title">Bot Control Center</div>
+<div class="row">
+    <div class="col-md-5 mb-4">
+        <div class="card">
+            <div class="card-header">Available & Uploaded Scripts</div>
+            <div class="card-body p-0">
+                <div style="max-height: 300px; overflow-y: auto;">
+                {% if available_scripts %}
+                    <table class="table table-hover m-0">
+                        <tbody>
+                        {% for script in available_scripts %}
+                            <tr>
+                                <td style="vertical-align: middle;">
+                                    {% if script == 'bot_worker.py' %}
+                                        <i class="fab fa-python fa-fw text-primary-custom"></i><strong>{{ script }}</strong>
+                                    {% else %}
+                                        <i class="fab fa-python fa-fw text-secondary"></i>{{ script }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <button type="button" class="btn btn-sm btn-success start-script-btn" data-filename="{{ script }}" title="Start {{ script }}">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                    {% if script != 'bot_worker.py' %}
+                                    <button type="button" class="btn btn-sm btn-outline-danger delete-script-btn" data-filename="{{ script }}" title="Delete {{ script }}">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="text-center text-secondary m-0 p-3">No scripts found. Upload one below.</p>
+                {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="card mt-4">
+            <div class="card-header">Upload New Script</div>
+            <div class="card-body">
+                <form action="{{ url_for('upload_bot_script') }}" method="post" enctype="multipart/form-data">
+                    <label for="bot_script_file" class="btn btn-primary-custom w-100"><i class="fa-solid fa-arrow-up-from-bracket"></i> Choose Script (.py)</label>
+                    <input type="file" name="bot_script" id="bot_script_file" accept=".py" required>
+                    <div id="bot-script-name-display" class="mt-3 text-secondary text-center">No file chosen</div>
+                    <button type="submit" class="btn btn-primary-custom w-100 mt-3">Upload Script</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-7 mb-4">
+        <div class="card">
+            <div class="card-header">Running Bot Processes</div>
+            <div class="card-body p-0" id="running-bots-container" style="min-height: 250px;">
+                <div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2 text-secondary">Checking status...</p></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload/Announce Widgets -->
+<div class="section-title">Communications & Uploads</div>
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header"><i class="fas fa-database me-2"></i>Upload New Database(s)</div>
+            <div class="card-body d-flex flex-column">
+                 <form action="{{ url_for('upload_db_file') }}" method="post" enctype="multipart/form-data" class="d-flex flex-column" style="flex-grow: 1;">
+                    <div style="flex-grow: 1;">
+                        <div class="mb-3">
+                            <label for="target-folder-select" class="form-label">1. Select Target Location:</label>
+                            <select name="target_folder" id="target-folder-select" class="form-select">
+                                {% for folder in database_folders %}
+                                <option value="{{ folder }}">{{ folder.replace('database', 'DB ').title() }}</option>
+                                {% endfor %}
+                                <option value="private">🔐 Private DB</option>
+                                <option value="info_database">ℹ️ Info DB</option>
+                                <option value="admin_database">👑 Admin DB</option>
+                            </select>
+                        </div>
+                         <div class="mb-3">
+                            <label class="form-label">2. Choose Files to Upload:</label>
+                            <label for="db_file" class="btn btn-primary-custom w-100 custom-file-label">
+                                <i class="fas fa-file-upload me-2"></i>Choose Files (.txt)
+                            </label>
+                            <input type="file" name="db_file" id="db_file" required multiple>
+                            <div id="file-name-display" class="text-secondary text-center mt-2">No files chosen</div>
+                         </div>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100 mt-auto">
+                        <i class="fas fa-cloud-upload-alt me-2"></i>Upload Now
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header"><i class="fas fa-bullhorn me-2"></i>Send Announcement</div>
+            <div class="card-body d-flex flex-column">
+                <form action="{{ url_for('announce') }}" method="post" class="d-flex flex-column" style="flex-grow: 1;">
+                    <div style="flex-grow: 1;">
+                        <label for="announcement-message" class="form-label">Message:</label>
+                        <textarea name="message" id="announcement-message" class="form-control" rows="4" placeholder="Type your announcement..." required></textarea>
+                        <small class="form-text text-secondary">You can use <code><b>bold</b></code>, <code><i>italic</i></code>, <code>{username}</code> and <code>{id}</code> placeholders.</small>
+                        
+                        <div class="form-check mt-3">
+                            <input class="form-check-input" type="checkbox" name="mention_all" value="true" id="mentionAllCheck">
+                            <label class="form-check-label" for="mentionAllCheck">
+                                Special: Mention all users (sends to admin).
+                            </label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary-custom w-100 mt-auto">
+                        <i class="fas fa-paper-plane me-2"></i>Send Announcement
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Admin Generator -->
+<div class="modal fade" id="adminGenerateModal" tabindex="-1" aria-labelledby="adminGenerateModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="adminGenerateModalLabel">👑 Admin Generation</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="admin-generate-form" action="{{ url_for('admin_generate') }}" method="post">
+          <div class="mb-3">
+            <label for="admin-gen-folder" class="form-label">Database Source:</label>
+            <select class="form-select" id="admin-gen-folder" name="folder" required>
+              <option value="" selected disabled>-- Select a folder --</option>
+              {% for folder in all_gen_folders %}
+              <option value="{{ folder }}">{{ folder.replace('database', 'DB ').replace('_', ' ').title() }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="admin-gen-service" class="form-label">Service / File:</label>
+            <select class="form-select" id="admin-gen-service" name="service_file" required disabled>
+              <option value="">-- Select a folder first --</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="admin-gen-quantity" class="form-label">Quantity:</label>
+            <input type="number" class="form-control" id="admin-gen-quantity" name="quantity" value="100" min="1" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="submit" form="admin-generate-form" class="btn btn-primary-custom" id="admin-generate-submit-btn">
+            <i class="fas fa-download me-2"></i>Generate & Download
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // --- File Upload Name Display ---
+    const dbFileInput = document.getElementById('db_file');
+    const dbFileNameDisplay = document.getElementById('file-name-display');
+    dbFileInput.addEventListener('change', () => {
+        dbFileNameDisplay.textContent = dbFileInput.files.length > 1 ? `${dbFileInput.files.length} files selected` : (dbFileInput.files.length === 1 ? dbFileInput.files[0].name : 'No files chosen');
+    });
+    const botScriptInput = document.getElementById('bot_script_file');
+    const botScriptNameDisplay = document.getElementById('bot-script-name-display');
+    botScriptInput.addEventListener('change', () => {
+        botScriptNameDisplay.textContent = botScriptInput.files.length > 0 ? botScriptInput.files[0].name : 'No file chosen';
+    });
+
+    // --- Event Notifications ---
+    const notificationLog = document.getElementById('notification-log');
+    const eventSource = new EventSource("{{ url_for('events') }}");
+    eventSource.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data.replace('data: ', ''));
+            const time = new Date().toLocaleTimeString();
+            if (notificationLog.textContent.startsWith('Listening')) { notificationLog.innerHTML = ''; }
+            const newLogEntry = document.createElement('div');
+            newLogEntry.innerHTML = `<span class="text-secondary">[${time}]</span> ${data.msg}`;
+            notificationLog.appendChild(newLogEntry);
+            notificationLog.scrollTop = notificationLog.scrollHeight;
+        } catch (e) { console.error("Error parsing event data: ", event.data); }
+    };
+    
+    // --- System Vitals ---
+    const memPercentEl = document.getElementById('stat-mem-percent');
+    const memProgressEl = document.getElementById('stat-mem-progress');
+    const memTextEl = document.getElementById('stat-mem-text');
+    const diskPercentEl = document.getElementById('stat-disk-percent');
+    const diskProgressEl = document.getElementById('stat-disk-progress');
+    const diskTextEl = document.getElementById('stat-disk-text');
+
+    function updateSystemStats() {
+        fetch("{{ url_for('system_stats') }}")
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) { return; }
+            if(memPercentEl) memPercentEl.textContent = data.memory_percent;
+            if(memProgressEl) { memProgressEl.style.width = data.memory_percent_raw + '%'; memProgressEl.setAttribute('aria-valuenow', data.memory_percent_raw); }
+            if(memTextEl) memTextEl.textContent = data.memory;
+            if(diskPercentEl) diskPercentEl.textContent = data.disk_percent;
+            if(diskProgressEl) { diskProgressEl.style.width = data.disk_percent_raw + '%'; diskProgressEl.setAttribute('aria-valuenow', data.disk_percent_raw); }
+            if(diskTextEl) diskTextEl.textContent = data.disk;
+        }).catch(err => console.error("Error fetching system stats:", err));
+    }
+
+    // --- Bot Controls ---
+    const runningBotsContainer = document.getElementById('running-bots-container');
+    function updateBotsStatus() {
+        fetch("{{ url_for('bots_status') }}")
+        .then(res => res.json())
+        .then(data => {
+            runningBotsContainer.innerHTML = '';
+            if (data.status === 'success' && data.running_bots && data.running_bots.length > 0) {
+                const table = document.createElement('table');
+                table.className = 'table table-hover m-0';
+                let tableHtml = `<tbody>`;
+                data.running_bots.forEach(bot => {
+                    const isCore = bot.script_name === 'bot_worker.py';
+                    tableHtml += `
+                        <tr>
+                            <td style="vertical-align: middle;"><i class="fas fa-robot fa-fw text-success"></i> ${isCore ? `<strong>${bot.script_name}</strong>` : `<code>${bot.script_name}</code>`}</td>
+                            <td class="text-secondary small" style="vertical-align: middle;">PID: ${bot.pid}</td>
+                            <td class="text-end"><button class="btn btn-sm btn-danger stop-bot-btn" data-script="${bot.script_name}" title="Stop ${bot.script_name}"><i class="fas fa-stop"></i></button></td>
+                        </tr>`;
+                });
+                tableHtml += `</tbody>`;
+                table.innerHTML = tableHtml;
+                runningBotsContainer.appendChild(table);
+            } else {
+                runningBotsContainer.innerHTML = '<div class="text-center p-5 text-secondary"><i class="fa-solid fa-ghost fa-2x mb-3"></i><p>No bot processes are running.</p></div>';
+            }
+        }).catch(err => {
+            runningBotsContainer.innerHTML = '<p class="text-center text-danger m-0 p-3">Error fetching status.</p>';
+        });
+    }
+
+    function handleScriptAction(url, scriptName, buttonElement, confirmMessage) {
+        if (confirmMessage && !confirm(confirmMessage)) return;
+        const originalButtonHtml = buttonElement.innerHTML;
+        buttonElement.disabled = true; buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        const formData = new FormData();
+        formData.append('filename', scriptName); 
+        formData.append('script_name', scriptName);
+        fetch(url, { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(data => { 
+            if (data.status !== 'success') { alert('Error: ' + data.message); }
+            setTimeout(updateBotsStatus, 500); 
+            if (url.includes('delete')) { window.location.reload(); }
+        })
+        .finally(() => { buttonElement.disabled = false; buttonElement.innerHTML = originalButtonHtml; });
+    }
+    
+    document.body.addEventListener('click', function(event) {
+        let button = event.target.closest('.start-script-btn'); 
+        if (button) { handleScriptAction("{{ url_for('start_bot') }}", button.dataset.filename, button); return; }
+        
+        button = event.target.closest('.stop-bot-btn'); 
+        if (button) { handleScriptAction("{{ url_for('stop_bot') }}", button.dataset.script, button, `Are you sure you want to stop the bot: ${button.dataset.script}?`); return; }
+        
+        button = event.target.closest('.delete-script-btn'); 
+        if (button) { handleScriptAction("{{ url_for('delete_bot_script') }}", button.dataset.filename, button, `Permanently delete '${button.dataset.filename}'? This cannot be undone.`); return; }
+    });
+
+    // --- Admin Generator Logic ---
+    const adminGenFolderSelect = document.getElementById('admin-gen-folder');
+    const adminGenServiceSelect = document.getElementById('admin-gen-service');
+    adminGenFolderSelect.addEventListener('change', function() {
+        const selectedFolder = this.value;
+        adminGenServiceSelect.innerHTML = '<option value="">Loading...</option>';
+        adminGenServiceSelect.disabled = true;
+
+        if (!selectedFolder) {
+            adminGenServiceSelect.innerHTML = '<option value="">-- Select a folder first --</option>';
+            return;
+        }
+        fetch("{{ url_for('list_files_for_admin_gen') }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ folder: selectedFolder })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) { adminGenServiceSelect.innerHTML = `<option value="">Error: ${data.error}</option>`; return; }
+            if (data.files && data.files.length > 0) {
+                adminGenServiceSelect.innerHTML = '';
+                data.files.forEach(fileInfo => {
+                    const option = new Option(`${fileInfo.path} (${fileInfo.count})`, fileInfo.path);
+                    adminGenServiceSelect.add(option);
+                });
+                adminGenServiceSelect.disabled = false;
+            } else { adminGenServiceSelect.innerHTML = '<option value="">-- No files found --</option>'; }
+        })
+        .catch(err => {
+            adminGenServiceSelect.innerHTML = '<option value="">-- Error loading files --</option>';
+        });
+    });
+
+    // --- NEW: Traffic Chart Logic ---
+    const trafficCtx = document.getElementById('trafficChart').getContext('2d');
+    let trafficChart = new Chart(trafficCtx, {
+        type: 'line',
+        data: { labels: [], datasets: [{ label: 'Bot Interactions per Hour', data: [], backgroundColor: 'rgba(106, 90, 205, 0.2)', borderColor: 'rgba(106, 90, 205, 1)', borderWidth: 2, tension: 0.4, fill: true }] },
+        options: {
+            scales: { y: { beginAtZero: true, grid: { color: '#374151' }, ticks: { color: '#9ca3af' } }, x: { grid: { color: '#374151' }, ticks: { color: '#9ca3af' } } },
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    function updateTrafficChart() {
+        fetch("{{ url_for('traffic_data') }}")
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                trafficChart.data.labels = data.labels;
+                trafficChart.data.datasets[0].data = data.data;
+                trafficChart.update();
+            }
+        }).catch(error => console.error('Error fetching traffic data:', error));
+    }
+    
+    // Initial and periodic updates
+    updateBotsStatus();
+    setInterval(updateBotsStatus, 7500);
+    updateSystemStats();
+    setInterval(updateSystemStats, 5000);
+    updateTrafficChart();
+    setInterval(updateTrafficChart, 60000); // Update traffic every minute
+});
+</script>
+{% endblock %}

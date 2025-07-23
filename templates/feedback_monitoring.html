@@ -1,0 +1,76 @@
+<!-- START OF FILE templates/feedback_monitoring.html -->
+{% extends "layout.html" %}
+
+{% block title %}Feedback Monitoring{% endblock %}
+
+{% block content %}
+<h1 class="main-title">Feedback Monitoring</h1>
+
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="fas fa-user-check me-2"></i> Users Who Gave Feedback ({{ users_with_feedback|length }})
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover m-0">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>User ID</th>
+                                <th>Feedback Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for key, points in users_with_feedback %}
+                            <tr>
+                                <td>@{{ key.telegram_username or 'N/A' }}</td>
+                                <td><code>{{ key.telegram_user_id }}</code></td>
+                                <td>{{ (points.points / feedback_points_value)|int }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center text-secondary p-4">No users have submitted feedback yet.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="fas fa-user-times me-2"></i> Users With No Feedback ({{ users_without_feedback|length }})
+            </div>
+            <div class="card-body p-0">
+                 <div class="table-responsive">
+                    <table class="table table-hover m-0">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>User ID</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for key in users_without_feedback %}
+                            <tr>
+                                <td>@{{ key.telegram_username or 'N/A' }}</td>
+                                <td><code>{{ key.telegram_user_id }}</code></td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="2" class="text-center text-secondary p-4">All registered users have submitted feedback.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

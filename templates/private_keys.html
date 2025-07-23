@@ -1,0 +1,76 @@
+<!-- START OF FILE templates/private_keys.html -->
+{% extends "layout.html" %}
+
+{% block title %}Private Keys - Gakuma Panel{% endblock %}
+
+{% block content %}
+<h1 class="main-title">Private Access Keys</h1>
+<p class="text-secondary mb-4">These are one-time use keys for accessing the private database section in the bot.</p>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}{% endif %}
+{% endwith %}
+
+<!-- Generate Key Card -->
+<div class="card mb-4">
+    <div class="card-header">Generate New Private Key(s)</div>
+    <div class="card-body">
+        <form action="{{ url_for('generate_private_key') }}" method="post" class="row g-3 align-items-end">
+            <div class="col-md-9">
+                <label for="quantity" class="form-label">Quantity (1-100):</label>
+                <input type="number" name="quantity" id="quantity" class="form-control" value="1" min="1" max="100" required>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary-custom w-100">Generate</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Existing Keys Table -->
+<div class="card">
+    <div class="card-header">Existing Private Keys</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover m-0">
+                <thead>
+                    <tr>
+                        <th>Key</th>
+                        <th>Status</th>
+                        <th>Used By</th>
+                        <th>Used At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for key in keys %}
+                <tr>
+                    <td><code>{{ key.key_string }}</code></td>
+                    <td>
+                        {% if key.is_used %}
+                            <span class="badge badge-running">Used</span>
+                        {% else %}
+                            <span class="badge badge-info">Unused</span>
+                        {% endif %}
+                    </td>
+                    <td><code>{{ key.used_by_id or 'N/A' }}</code></td>
+                    <td>{{ key.used_at.strftime('%Y-%m-%d %H:%M') if key.used_at else 'N/A' }}</td>
+                    <td>
+                        <form action="{{ url_for('delete_private_key', key_id=key.id) }}" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to permanently delete this key?');" title="Delete Key">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center p-4 text-secondary">No private keys found.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

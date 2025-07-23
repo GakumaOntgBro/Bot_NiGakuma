@@ -1,0 +1,194 @@
+<!-- START OF FILE templates/checker_results.html -->
+{% extends "layout.html" %}
+
+{% block title %}Checker Results - Gakuma Panel{% endblock %}
+
+{% block content %}
+<h1 class="main-title">Account Checker Results</h1>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<!-- Stats Section -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-4">
+        <div class="card stat-card h-100">
+            <div class="stat-card-title">Total Result Files</div>
+            <div class="stat-card-value">{{ total_files }}</div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card stat-card h-100">
+            <div class="stat-card-title">Total Size of Results</div>
+            <div class="stat-card-value">{{ total_size }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtering Controls -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-filter me-2"></i>Filter Results by Level
+    </div>
+    <div class="card-body">
+        <p class="mb-2 text-secondary">Show account levels in the following ranges:</p>
+        <div class="d-flex flex-wrap gap-3">
+            <div class="form-check">
+                <input class="form-check-input level-filter" type="checkbox" id="level50" value="50-100" checked>
+                <label class="form-check-label" for="level50">50 - 100</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input level-filter" type="checkbox" id="level100" value="100-200" checked>
+                <label class="form-check-label" for="level100">100 - 200</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input level-filter" type="checkbox" id="level200" value="200-299" checked>
+                <label class="form-check-label" for="level200">200 - 299</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input level-filter" type="checkbox" id="level300" value="300-400" checked>
+                <label class="form-check-label" for="level300">300 - 400</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input level-filter" type="checkbox" id="level_unknown" value="unknown" checked>
+                <label class="form-check-label" for="level_unknown">Other / Unknown</label>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Accordion for Results -->
+<div class="accordion" id="resultsAccordion">
+    {% for country, data in results.items() %}
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="heading-{{ country }}">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ country }}" aria-expanded="false" aria-controls="collapse-{{ country }}">
+                <i class="fas fa-globe-americas me-3"></i><strong>{{ country }}</strong>
+            </button>
+        </h2>
+        <div id="collapse-{{ country }}" class="accordion-collapse collapse" aria-labelledby="heading-{{ country }}" data-bs-parent="#resultsAccordion">
+            <div class="accordion-body p-0">
+                <div class="accordion" id="accordion-{{ country }}">
+                    
+                    <!-- Clean Section -->
+                    {% if data.clean %}
+                    <div class="accordion-item" style="border: none;">
+                        <h2 class="accordion-header" id="heading-{{ country }}-clean">
+                            <button class="accordion-button-nested" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ country }}-clean">
+                                <i class="fas fa-check-circle me-2 text-success"></i> Clean Accounts <span class="badge bg-success ms-2">{{ data.clean|length }}</span>
+                            </button>
+                        </h2>
+                        <div id="collapse-{{ country }}-clean" class="accordion-collapse collapse show" data-bs-parent="#accordion-{{ country }}">
+                            <div class="list-group list-group-flush">
+                                {% for file in data.clean %}
+                                <div class="list-group-item result-file-item" data-level-range="{{ file.level_range }}">
+                                    <div>
+                                        <i class="fas fa-file-alt text-secondary me-2"></i>
+                                        <span>{{ file.filename }}</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <span class="badge bg-secondary">{{ file.size }}</span>
+                                        <a href="{{ url_for('download_checker_file', filepath=country + '/clean/' + file.filename) }}" class="btn btn-sm btn-primary-custom">
+                                            <i class="fas fa-download me-1"></i> Download
+                                        </a>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Not Clean Section -->
+                    {% if data.not_clean %}
+                    <div class="accordion-item" style="border: none;">
+                        <h2 class="accordion-header" id="heading-{{ country }}-not_clean">
+                            <button class="accordion-button-nested" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ country }}-not_clean">
+                                <i class="fas fa-times-circle me-2 text-danger"></i> Not Clean Accounts <span class="badge bg-danger ms-2">{{ data.not_clean|length }}</span>
+                            </button>
+                        </h2>
+                        <div id="collapse-{{ country }}-not_clean" class="accordion-collapse collapse show" data-bs-parent="#accordion-{{ country }}">
+                             <div class="list-group list-group-flush">
+                                {% for file in data.not_clean %}
+                                 <div class="list-group-item result-file-item" data-level-range="{{ file.level_range }}">
+                                    <div>
+                                        <i class="fas fa-file-alt text-secondary me-2"></i>
+                                        <span>{{ file.filename }}</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <span class="badge bg-secondary">{{ file.size }}</span>
+                                        <a href="{{ url_for('download_checker_file', filepath=country + '/not_clean/' + file.filename) }}" class="btn btn-sm btn-primary-custom">
+                                            <i class="fas fa-download me-1"></i> Download
+                                        </a>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center text-secondary">
+            <i class="fas fa-folder-open fa-3x mb-3"></i>
+            <p>No checker result files found.</p>
+            <p class="small">Ensure a checker script has run and generated files in the configured `checker_results` directory.</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const filterCheckboxes = document.querySelectorAll('.level-filter');
+    const resultItems = document.querySelectorAll('.result-file-item');
+
+    function applyFilters() {
+        const selectedLevels = [];
+        filterCheckboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                selectedLevels.push(checkbox.value);
+            }
+        });
+
+        resultItems.forEach(item => {
+            const itemLevel = item.getAttribute('data-level-range').trim();
+            
+            let isVisible = selectedLevels.includes('unknown') && itemLevel === 'unknown';
+
+            for (const selected of selectedLevels) {
+                if (selected === 'unknown' || itemLevel === 'unknown') continue;
+                
+                const [selectedMin, selectedMax] = selected.split('-').map(Number);
+                const [itemMin, itemMax] = itemLevel.split('-').map(Number);
+                
+                if (itemMin <= selectedMax && itemMax >= selectedMin) {
+                    isVisible = true;
+                    break;
+                }
+            }
+
+            item.style.display = isVisible ? 'flex' : 'none';
+        });
+    }
+
+    filterCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', applyFilters);
+    });
+
+    applyFilters();
+});
+</script>
+{% endblock %}

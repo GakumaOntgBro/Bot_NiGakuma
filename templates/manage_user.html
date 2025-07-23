@@ -1,0 +1,75 @@
+<!-- START OF FILE templates/manage_user.html -->
+{% extends "layout.html" %}
+
+{% block title %}Manage User - Gakuma Panel{% endblock %}
+
+{% block content %}
+<h1 class="main-title">Manage User: <code>{{ key.telegram_user_id }}</code></h1>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{category}}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<div class="card mb-4">
+     <div class="card-header">User Information</div>
+     <div class="card-body">
+        <p><strong>Telegram User:</strong> <code>{{ key.telegram_user_id }}</code> (@{{ key.telegram_username or 'N/A' }})</p>
+        <p><strong>Key:</strong> <code>{{ key.key_string }}</code></p>
+        <p><strong>Status:</strong> 
+            {% if key.expires_at and key.expires_at < now %}
+                <span class="badge badge-danger">Expired</span>
+            {% else %}
+                <span class="badge badge-running">Active</span>
+            {% endif %}
+        </p>
+        <p><strong>Expires At:</strong> {{ key.expires_at.strftime('%Y-%m-%d %H:%M:%S UTC') if key.expires_at else 'Lifetime' }}</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        {% if key.expires_at %}
+        <div class="card h-100">
+            <div class="card-header">Adjust Subscription Time</div>
+            <div class="card-body">
+                <form action="{{ url_for('adjust_time', key_id=key.id) }}" method="post">
+                    <label for="duration" class="form-label">Select Duration</label>
+                    <select name="duration" class="form-select mb-3">
+                        <option value="1h">1 Hour</option>
+                        <option value="1d" selected>1 Day</option>
+                        <option value="7d">7 Days</option>
+                        <option value="30d">30 Days</option>
+                    </select>
+                    <div class="d-flex gap-3">
+                        <button type="submit" name="action" value="add" class="btn btn-success" style="flex: 1;">Add Time</button>
+                        <button type="submit" name="action" value="deduct" class="btn btn-warning" style="flex: 1;">Deduct Time</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <div class="card h-100">
+            <div class="card-header">Adjust Subscription Time</div>
+            <div class="card-body text-center d-flex align-items-center justify-content-center">
+                <p class="text-secondary">This is a lifetime key and its time cannot be adjusted.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    <div class="col-md-6 mb-4">
+         <div class="card h-100">
+            <div class="card-header">Revoke Access</div>
+            <div class="card-body">
+                <p class="text-secondary mb-3">This action is permanent and will delete the user's key from the database entirely.</p>
+                <form action="{{ url_for('revoke_key', key_id=key.id) }}" method="post" onsubmit="return confirm('Are you sure you want to permanently revoke this key? This cannot be undone.');">
+                    <button type="submit" class="btn btn-danger w-100">Revoke Key Permanently</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

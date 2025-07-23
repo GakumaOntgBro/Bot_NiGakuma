@@ -1,0 +1,122 @@
+<!-- START OF FILE templates/keys.html -->
+{% extends "layout.html" %}
+
+{% block title %}Subscription Keys - Gakuma Panel{% endblock %}
+
+{% block content %}
+<h1 class="main-title">Subscription Key Management</h1>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}{% endif %}
+{% endwith %}
+
+<div class="card mb-4">
+    <div class="card-header">Generate New Key(s)</div>
+    <div class="card-body">
+        <form action="{{ url_for('generate_key') }}" method="post" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label for="duration" class="form-label">Duration:</label>
+                <select name="duration" class="form-select">
+                    <option value="1h">1 Hour</option>
+                    <option value="1d">1 Day</option>
+                    <option value="7d">7 Days</option>
+                    <option value="30d" selected>30 Days</option>
+                    <option value="lifetime">Lifetime</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="quantity" class="form-label">Quantity (1-100):</label>
+                <input type="number" name="quantity" id="quantity" class="form-control" value="1" min="1" max="100" required>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary-custom w-100">Generate</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Existing Keys</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover m-0">
+                <thead>
+                    <tr><th>Key</th><th>Duration</th><th>Expires</th><th>Status</th><th>Redeemed By</th><th>Actions</th></tr>
+                </thead>
+                <tbody>
+                {% for key in keys %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <code class="small">{{ key.key_string }}</code>
+                            <button type="button" class="btn btn-sm btn-outline-secondary copy-key-btn" data-key="{{ key.key_string }}" title="Copy Key">
+                                <i class="fas fa-copy" style="pointer-events: none;"></i>
+                            </button>
+                        </div>
+                    </td>
+                    <td>{{ key.duration_str | capitalize }}</td>
+                    <td>{{ key.expires_at.strftime('%Y-%m-%d %H:%M') if key.expires_at else 'Never' }}</td>
+                    <td>
+                        {% if not key.is_used %}
+                            <span class="badge badge-info">Unused</span>
+                        {% elif key.expires_at and key.expires_at < now %}
+                            <span class="badge badge-danger">Expired</span>
+                        {% else %}
+                            <span class="badge badge-running">Active</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <code>{{ key.telegram_user_id or 'N/A' }}</code><br>
+                        <small class="text-secondary">@{{ key.telegram_username or '' }}</small>
+                    </td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            {% if key.is_used %}
+                                <a href="{{ url_for('manage_user', key_id=key.id) }}" class="btn btn-sm btn-primary-custom"><i class="fas fa-user-edit"></i></a>
+                            {% endif %}
+                            <form action="{{ url_for('delete_subscription_key', key_id=key.id) }}" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to permanently delete this key? This action is irreversible.');" title="Delete Key">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center p-4 text-secondary">No subscription keys found.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.copy-key-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const keyToCopy = this.dataset.key;
+            navigator.clipboard.writeText(keyToCopy).then(() => {
+                const originalIconHTML = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-check" style="pointer-events: none;"></i>';
+                this.classList.remove('btn-outline-secondary');
+                this.classList.add('btn-success');
+                
+                setTimeout(() => {
+                    this.innerHTML = originalIconHTML;
+                    this.classList.add('btn-outline-secondary');
+                    this.classList.remove('btn-success');
+                }, 1500);
+            }).catch(err => {
+                console.error('Failed to copy key:', err);
+                alert('Failed to copy key.');
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
