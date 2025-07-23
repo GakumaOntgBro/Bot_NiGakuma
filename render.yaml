@@ -13,12 +13,11 @@ services:
     # This sets the service to use the free instance type.
     plan: free
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn app:app --bind 0.0.0.0:2004 --threads 4"
+    # Render's free web services use port 10000
+    startCommand: "gunicorn app:app --bind 0.0.0.0:10000 --threads 4"
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.6
-      # NOTE: We have removed the RENDER_INSTANCE_DIR and the disk block.
-      # The app will now write data to the temporary filesystem.
 
   #---------------------------------
   # Service 2: The Telegram Bot (Free Instance)
@@ -34,6 +33,6 @@ services:
       - key: PYTHON_VERSION
         value: 3.10.6
       # This allows the bot to communicate with the web panel over Render's private network.
-      # The name must match the web service name above (gakuma-panel-free).
+      # The name and port must match the web service above.
       - key: PANEL_API_URL
-        value: http://gakuma-panel-free:2004
+        value: http://gakuma-panel-free:10000
