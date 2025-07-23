@@ -13,7 +13,7 @@ services:
     # This sets the service to use the free instance type.
     plan: free
     buildCommand: "pip install -r requirements.txt"
-    # Render's free web services use port 10000
+    # Render's free web services use port 10000. Gunicorn binds to this port.
     startCommand: "gunicorn app:app --bind 0.0.0.0:10000 --threads 4"
     envVars:
       - key: PYTHON_VERSION
