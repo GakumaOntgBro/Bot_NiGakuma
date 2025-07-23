@@ -1,0 +1,42 @@
+# render.yaml
+# Blueprint for deploying the Gakuma Panel and Bot on Render
+
+services:
+  #--------------------------------
+  # Service 1: The Flask Web Panel
+  #--------------------------------
+  - type: web
+    name: gakuma-panel
+    env: python
+    # This command installs all libraries from requirements.txt
+    buildCommand: "pip install -r requirements.txt"
+    # This command starts the web server using Gunicorn on the port specified in your code
+    startCommand: "gunicorn app:app --bind 0.0.0.0:2004 --threads 4"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.6
+      # This is crucial: It tells your app to use the persistent disk for its data directory.
+      - key: RENDER_INSTANCE_DIR
+        value: /var/data/gakuma
+    disk:
+      # This defines the persistent storage for your database, logs, and uploaded files.
+      name: gakuma-data
+      mountPath: /var/data/gakuma
+      sizeGB: 20 # The dashboard code has a 20GB limit, so this matches it.
+
+  #---------------------------------
+  # Service 2: The Telegram Bot
+  #---------------------------------
+  - type: worker
+    name: gakuma-bot
+    env: python
+    # The bot uses the same libraries, so we use the same build command.
+    buildCommand: "pip install -r requirements.txt"
+    # This command runs your bot script.
+    startCommand: "python bot_worker.py"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.6
+      # This allows the bot to communicate with the web panel over Render's private network.
+      - key: PANEL_API_URL
+        value: http://gakuma-panel:2004
